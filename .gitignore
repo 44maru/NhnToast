@@ -1,0 +1,5 @@
+*.log
+config.toml.musashi
+dist/config.toml
+dist/*.exe
+dist/*.log

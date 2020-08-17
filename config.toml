@@ -1,0 +1,10 @@
+[UserInfo]
+user = "dummy"
+tenantId = "dummy"
+apiPassword = "dummy"
+
+[Thread]
+threadNum = 10
+
+[Instance]
+imageName = "proxy"
