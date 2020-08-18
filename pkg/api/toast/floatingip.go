@@ -8,6 +8,7 @@ import (
 	"nhn-toast/pkg/constants"
 	"nhn-toast/pkg/infrastructure/http"
 	"sync"
+	"time"
 )
 
 type CreateFloatingIpRequest struct {
@@ -78,6 +79,7 @@ func CreateFloatingIps(serverList *ServerListDetailResponse, config *config.Conf
 				log.Printf("ERROR : instance '%s' failed to create floating ip. %s\n", serverName, err.Error())
 				isSuccess = false
 			} else {
+				time.Sleep(time.Second * config.Thread.SleepSecBeforeJointFloatingIp)
 				_, err := jointFloatingIp(createRes.Floatingip.ID, portId, token)
 				if err != nil {
 					log.Printf("ERROR : instance '%s' failed to joint floating ip. %s\n", serverName, err.Error())

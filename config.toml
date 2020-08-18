@@ -5,6 +5,7 @@ apiPassword = "dummy"
 
 [Thread]
 threadNum = 10
+sleepSecondsBeforeJointFloatingIp = 5
 
 [Instance]
 imageName = "proxy"

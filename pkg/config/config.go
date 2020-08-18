@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -19,7 +20,8 @@ type UserInfo struct {
 }
 
 type Thread struct {
-	ThreadNum int `toml:"threadNum"`
+	ThreadNum                     int           `toml:"threadNum"`
+	SleepSecBeforeJointFloatingIp time.Duration `toml:"sleepSecondsBeforeJointFloatingIp"`
 }
 
 type Instance struct {
