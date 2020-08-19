@@ -9,11 +9,13 @@ import (
 )
 
 func CreateInstance(config *config.Config, token string) {
-	imageId, err := toast.GetImageId(config.Instance.ImageName, token)
-	if err != nil {
-		log.Printf("ERROR: イメージ '%s'のID取得失敗: %s\n", config.Instance.ImageName, err.Error())
-		return
-	}
+	/*
+		imageId, err := toast.GetImageId(config.Instance.ImageName, token)
+		if err != nil {
+			log.Printf("ERROR: イメージ '%s'のID取得失敗: %s\n", config.Instance.ImageName, err.Error())
+			return
+		}
+	*/
 
 	defaultSubnetId, err := toast.GetSubnetId(constants.DEFAULT_SUBNET_NAME, token)
 	if err != nil {
@@ -21,7 +23,8 @@ func CreateInstance(config *config.Config, token string) {
 		return
 	}
 
-	err = toast.CreateInstance(config, imageId, defaultSubnetId, token)
+	err = toast.CreateInstance(config, defaultSubnetId, token)
+	//err = toast.CreateInstance(config, imageId, defaultSubnetId, token)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
 		return

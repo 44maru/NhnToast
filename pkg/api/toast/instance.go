@@ -77,7 +77,7 @@ type ServerCreateResponse struct {
 	} `json:"server"`
 }
 
-func CreateInstance(config *config.Config, imageId, subnetId, token string) error {
+func CreateInstance(config *config.Config, subnetId, token string) error {
 	isSuccess := true
 	instanceCreateUrl := constants.COMPUTE_ENDPOINT + "/v2/" + config.UserInfo.TenantId + "/servers"
 
@@ -93,7 +93,7 @@ func CreateInstance(config *config.Config, imageId, subnetId, token string) erro
 		limitCh <- struct{}{}
 		go func(instanceInfo *CreateInstanceInfo) {
 			defer wg.Done()
-			err := createInstance(instanceInfo, imageId, subnetId, token, instanceCreateUrl)
+			err := createInstance(instanceInfo, config.Instance.ImageId, subnetId, token, instanceCreateUrl)
 			if err != nil {
 				log.Printf("ERROR : instance '%s' failed to create. %s\n", instanceInfo.Name, err.Error())
 				isSuccess = false
@@ -213,6 +213,7 @@ func DeleteInstanceList(serverInfoList *ServerListDetailResponse, config *config
 			} else {
 				log.Printf("instance '%s' successed to delete.\n", serverName)
 			}
+			time.Sleep(time.Second * config.Thread.SleepSecondsAfterDeleteInstance)
 			<-limitCh
 		}(serverInfo.Name, deleteInstanceUrl)
 	}

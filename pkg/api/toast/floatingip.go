@@ -190,6 +190,7 @@ func DeleteFloatingIpList(floatinIpList *FloatingIpListResponse, config *config.
 			} else {
 				log.Printf("floating ip '%s' successed to delete.\n", floatingIpAddress)
 			}
+			time.Sleep(time.Second * config.Thread.SleepSecondsAfterDeleteFloatingIp)
 			<-limitCh
 		}(floatingIpInfo.FloatingIPAddress, deleteInstanceUrl)
 	}

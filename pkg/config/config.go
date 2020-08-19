@@ -20,11 +20,14 @@ type UserInfo struct {
 }
 
 type Thread struct {
-	ThreadNum                     int           `toml:"threadNum"`
-	SleepSecBeforeJointFloatingIp time.Duration `toml:"sleepSecondsBeforeJointFloatingIp"`
+	ThreadNum                         int           `toml:"threadNum"`
+	SleepSecondsAfterDeleteInstance   time.Duration `toml:"sleepSecondsAfterDeleteInstance"`
+	SleepSecondsAfterDeleteFloatingIp time.Duration `toml:"sleepSecondsAfterDeleteFloatingIp"`
+	SleepSecBeforeJointFloatingIp     time.Duration `toml:"sleepSecondsBeforeJointFloatingIp"`
 }
 
 type Instance struct {
+	ImageId   string `toml:"imageId"`
 	ImageName string `toml:"imageName"`
 }
 

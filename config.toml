@@ -4,8 +4,10 @@ tenantId = "dummy"
 apiPassword = "dummy"
 
 [Thread]
-threadNum = 10
-sleepSecondsBeforeJointFloatingIp = 5
+threadNum = 1
+sleepSecondsAfterDeleteInstance = 1
+sleepSecondsAfterDeleteFloatingIp = 1
+sleepSecondsBeforeJointFloatingIp = 1
 
 [Instance]
-imageName = "proxy"
+imageId = "dummy"

@@ -67,3 +67,21 @@ func GetImageId(imageName, token string) (string, error) {
 
 	return imageInfoList.Images[0].ID, nil
 }
+
+func GetImageList(token string) (*GetImageResponse, error) {
+	httpReqHeader := map[string]string{}
+	httpReqHeader["X-Auth-Token"] = token
+	jsonRes, err := http.Get(constants.IMAGE_URL, httpReqHeader, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	imageInfoList := new(GetImageResponse)
+	err = json.Unmarshal(jsonRes, &imageInfoList)
+	if err != nil {
+		log.Println("Get image list response json unmarshal err")
+		return nil, err
+	}
+
+	return imageInfoList, nil
+}

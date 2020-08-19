@@ -6,6 +6,7 @@ const FLOW_TYPE_LIST_INSTANCE = "list-instance"
 const FLOW_TYPE_CREATE_FLOATINGIP = "create-floatingip"
 const FLOW_TYPE_DELETE_FLOATINGIP = "delete-floatingip"
 const FLOW_TYPE_LIST_FLOATINGIP = "list-floatingip"
+const FLOW_TYPE_LIST_IMAGE = "list-image"
 
 const COMPUTE_ENDPOINT = "https://jp1-api-instance.infrastructure.cloud.toast.com"
 const NETWORK_ENDPOINT = "https://jp1-api-network.infrastructure.cloud.toast.com"

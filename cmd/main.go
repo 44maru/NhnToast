@@ -59,6 +59,9 @@ func main() {
 
 	} else if *flowType == constants.FLOW_TYPE_LIST_FLOATINGIP {
 		flow.ListFloatingIp(config, token)
+
+	} else if *flowType == constants.FLOW_TYPE_LIST_IMAGE {
+		flow.ListImage(token)
 	}
 
 	util.WaitEnter()
