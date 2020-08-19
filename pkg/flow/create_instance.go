@@ -24,7 +24,6 @@ func CreateInstance(config *config.Config, token string) {
 	}
 
 	err = toast.CreateInstance(config, defaultSubnetId, token)
-	//err = toast.CreateInstance(config, imageId, defaultSubnetId, token)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
 		return
