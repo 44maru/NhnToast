@@ -17,13 +17,13 @@ func CreateInstance(config *config.Config, token string) {
 		}
 	*/
 
-	defaultSubnetId, err := toast.GetSubnetId(constants.DEFAULT_SUBNET_NAME, token)
+	subnetIdList, err := toast.GetSubnetIdList(constants.DEFAULT_SUBNET_NAME, token)
 	if err != nil {
 		log.Printf("ERROR: ネットワーク '%s'のID取得失敗: %s\n", constants.DEFAULT_SUBNET_NAME, err.Error())
 		return
 	}
 
-	err = toast.CreateInstance(config, defaultSubnetId, token)
+	err = toast.CreateInstance(config, subnetIdList, token)
 	if err != nil {
 		log.Printf("ERROR: %s", err.Error())
 		return

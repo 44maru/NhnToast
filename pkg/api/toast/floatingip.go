@@ -48,48 +48,46 @@ func CreateFloatingIps(serverList *ServerListDetailResponse, config *config.Conf
 	var wg sync.WaitGroup
 	limitCh := make(chan struct{}, config.Thread.ThreadNum)
 	for _, serverInfo := range serverList.Servers {
-		hasFloatingIp := false
-		targetMacAddress := ""
+		globalIpMacAddrMap := getGlobalIpMacAddrMap(serverInfo)
+
 		for _, vpcInfo := range serverInfo.Addresses.DefaultNetwork {
 			if vpcInfo.OSEXTIPSType == "floating" {
-				hasFloatingIp = true
-				break
+				continue
 			}
-			targetMacAddress = vpcInfo.OSEXTIPSMACMacAddr
-		}
 
-		if hasFloatingIp {
-			log.Printf("%s has already floating ip. skip create and joint floating ip.\n", serverInfo.Name)
-			continue
-		}
+			if _, doesExist := globalIpMacAddrMap[vpcInfo.OSEXTIPSMACMacAddr]; doesExist {
+				log.Printf("%s mac address '%s' already associated floating ip. skip create and joint floating ip.\n", serverInfo.Name, vpcInfo.OSEXTIPSMACMacAddr)
+				continue
+			}
 
-		portId := getPortId(targetMacAddress, portList)
-		if portId == "" {
-			isSuccess = false
-			log.Printf("Not found port id for %s. skip create and joint floating ip.\n", serverInfo.Name)
-			continue
-		}
-
-		wg.Add(1)
-		limitCh <- struct{}{}
-		go func(serverName, portId string) {
-			defer wg.Done()
-			createRes, err := createFloatingIp(portId, publicNetworkId, token)
-			if err != nil {
-				log.Printf("ERROR : instance '%s' failed to create floating ip. %s\n", serverName, err.Error())
+			portId := getPortId(vpcInfo.OSEXTIPSMACMacAddr, portList)
+			if portId == "" {
 				isSuccess = false
-			} else {
-				time.Sleep(time.Second * config.Thread.SleepSecBeforeJointFloatingIp)
-				_, err := jointFloatingIp(createRes.Floatingip.ID, portId, token)
+				log.Printf("Not found port id for %s. skip create and joint floating ip.\n", serverInfo.Name)
+				continue
+			}
+
+			wg.Add(1)
+			limitCh <- struct{}{}
+			go func(serverName, portId string) {
+				defer wg.Done()
+				createRes, err := createFloatingIp(portId, publicNetworkId, token)
 				if err != nil {
-					log.Printf("ERROR : instance '%s' failed to joint floating ip. %s\n", serverName, err.Error())
+					log.Printf("ERROR : instance '%s' failed to create floating ip. %s\n", serverName, err.Error())
 					isSuccess = false
 				} else {
-					log.Printf("instance '%s' successed to create and joint floating ip.\n", serverName)
+					time.Sleep(time.Second * config.Thread.SleepSecBeforeJointFloatingIp)
+					_, err := jointFloatingIp(createRes.Floatingip.ID, portId, token)
+					if err != nil {
+						log.Printf("ERROR : instance '%s' failed to joint floating ip. %s\n", serverName, err.Error())
+						isSuccess = false
+					} else {
+						log.Printf("instance '%s' successed to create and joint floating ip.\n", serverName)
+					}
 				}
-			}
-			<-limitCh
-		}(serverInfo.Name, portId)
+				<-limitCh
+			}(serverInfo.Name, portId)
+		}
 	}
 
 	wg.Wait()
@@ -233,4 +231,15 @@ func GetFloatingIpList(config *config.Config, token string) (*FloatingIpListResp
 	}
 
 	return floatingipList, nil
+}
+
+func getGlobalIpMacAddrMap(serverInfo Server) map[string]struct{} {
+	globalIpMacAddrMap := make(map[string]struct{})
+	for _, vpcInfo := range serverInfo.Addresses.DefaultNetwork {
+		if vpcInfo.OSEXTIPSType == "floating" {
+			globalIpMacAddrMap[vpcInfo.OSEXTIPSMACMacAddr] = struct{}{}
+		}
+	}
+
+	return globalIpMacAddrMap
 }

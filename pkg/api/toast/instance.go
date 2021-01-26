@@ -77,7 +77,15 @@ type ServerCreateResponse struct {
 	} `json:"server"`
 }
 
-func CreateInstance(config *config.Config, subnetId, token string) error {
+type ServerBootRequest struct {
+	OsStart interface{} `json:"os-start"`
+}
+
+type ServerShutdownRequest struct {
+	OsStop interface{} `json:"os-stop"`
+}
+
+func CreateInstance(config *config.Config, subnetIdList []string, token string) error {
 	isSuccess := true
 	instanceCreateUrl := constants.COMPUTE_ENDPOINT + "/v2/" + config.UserInfo.TenantId + "/servers"
 
@@ -86,6 +94,8 @@ func CreateInstance(config *config.Config, subnetId, token string) error {
 		return err
 	}
 
+	networks := createNetworks(subnetIdList)
+
 	var wg sync.WaitGroup
 	limitCh := make(chan struct{}, config.Thread.ThreadNum)
 	for _, instanceInfo := range createInstanceInfoList {
@@ -93,7 +103,7 @@ func CreateInstance(config *config.Config, subnetId, token string) error {
 		limitCh <- struct{}{}
 		go func(instanceInfo *CreateInstanceInfo) {
 			defer wg.Done()
-			err := createInstance(instanceInfo, config.Instance.ImageId, subnetId, token, instanceCreateUrl)
+			err := createInstance(instanceInfo, config.Instance.ImageId, networks, token, instanceCreateUrl)
 			if err != nil {
 				log.Printf("ERROR : instance '%s' failed to create. %s\n", instanceInfo.Name, err.Error())
 				isSuccess = false
@@ -113,13 +123,13 @@ func CreateInstance(config *config.Config, subnetId, token string) error {
 	}
 }
 
-func createInstance(instanceInfo *CreateInstanceInfo, proxyImageId, subnetId, token, instanceCreateUrl string) error {
+func createInstance(instanceInfo *CreateInstanceInfo, proxyImageId string, networks []Network, token, instanceCreateUrl string) error {
 	createReq := new(ServerCreateRequest)
 	createReq.Server.Name = instanceInfo.Name
 	createReq.Server.ImageRef = proxyImageId
 	createReq.Server.FlavorRef = U2_C1M1_FLAVER_REF
 	createReq.Server.SecurityGroups = []SecurityGroup{{Name: instanceInfo.SecurityGroup}}
-	createReq.Server.Networks = []Network{{Subnet: subnetId}}
+	createReq.Server.Networks = networks
 	createReq.Server.KeyName = instanceInfo.KeyPairName
 	createReq.Server.MinCount = instanceInfo.NumOfInstance
 	createReq.Server.MaxCount = instanceInfo.NumOfInstance
@@ -228,75 +238,117 @@ func DeleteInstanceList(serverInfoList *ServerListDetailResponse, config *config
 
 }
 
+func StartInstanceList(serverInfoList *ServerListDetailResponse, config *config.Config, token string) error {
+	isSuccess := true
+	var wg sync.WaitGroup
+
+	bootRequest := new(ServerBootRequest)
+	reqJsonBytes, err := json.MarshalIndent(bootRequest, "", "  ")
+
+	httpReqHeader := map[string]string{}
+	httpReqHeader["Content-Type"] = "application/json"
+	httpReqHeader["X-Auth-Token"] = token
+
+	limitCh := make(chan struct{}, config.Thread.ThreadNum)
+	for _, serverInfo := range serverInfoList.Servers {
+		instanceUrl := constants.COMPUTE_ENDPOINT + "/v2/" + config.UserInfo.TenantId + "/servers/" + serverInfo.ID + "/action"
+		wg.Add(1)
+		limitCh <- struct{}{}
+		go func(serverName, instanceUrl string) {
+			defer wg.Done()
+			_, err = http.Post(instanceUrl, reqJsonBytes, httpReqHeader)
+			if err != nil {
+				log.Printf("ERROR : instance '%s' failed to start up. %s\n", serverName, err.Error())
+				isSuccess = false
+			} else {
+				log.Printf("instance '%s' successed to start up.\n", serverName)
+			}
+			time.Sleep(time.Second * config.Thread.SleepSecondsAfterDeleteInstance)
+			<-limitCh
+		}(serverInfo.Name, instanceUrl)
+	}
+
+	wg.Wait()
+
+	if isSuccess {
+		return nil
+	} else {
+		return fmt.Errorf("Failed to start up any of instance.")
+	}
+
+}
+
 type ServerListDetailResponse struct {
-	Servers []struct {
-		Status    string    `json:"status"`
-		Updated   time.Time `json:"updated"`
-		HostID    string    `json:"hostId"`
-		Addresses struct {
-			DefaultNetwork []struct {
-				OSEXTIPSMACMacAddr string `json:"OS-EXT-IPS-MAC:mac_addr"`
-				Version            int    `json:"version"`
-				Addr               string `json:"addr"`
-				OSEXTIPSType       string `json:"OS-EXT-IPS:type"`
-			} `json:"Default Network"`
-		} `json:"addresses"`
+	Servers []Server `json:"servers"`
+}
+
+type Server struct {
+	Status    string    `json:"status"`
+	Updated   time.Time `json:"updated"`
+	HostID    string    `json:"hostId"`
+	Addresses struct {
+		DefaultNetwork []struct {
+			OSEXTIPSMACMacAddr string `json:"OS-EXT-IPS-MAC:mac_addr"`
+			Version            int    `json:"version"`
+			Addr               string `json:"addr"`
+			OSEXTIPSType       string `json:"OS-EXT-IPS:type"`
+		} `json:"Default Network"`
+	} `json:"addresses"`
+	Links []struct {
+		Href string `json:"href"`
+		Rel  string `json:"rel"`
+	} `json:"links"`
+	KeyName string `json:"key_name"`
+	Image   struct {
+		ID    string `json:"id"`
 		Links []struct {
 			Href string `json:"href"`
 			Rel  string `json:"rel"`
 		} `json:"links"`
-		KeyName string `json:"key_name"`
-		Image   struct {
-			ID    string `json:"id"`
-			Links []struct {
-				Href string `json:"href"`
-				Rel  string `json:"rel"`
-			} `json:"links"`
-		} `json:"image"`
-		OSEXTSTSTaskState  interface{} `json:"OS-EXT-STS:task_state"`
-		OSEXTSTSVMState    string      `json:"OS-EXT-STS:vm_state"`
-		OSSRVUSGLaunchedAt string      `json:"OS-SRV-USG:launched_at"`
-		Flavor             struct {
-			ID    string `json:"id"`
-			Links []struct {
-				Href string `json:"href"`
-				Rel  string `json:"rel"`
-			} `json:"links"`
-		} `json:"flavor"`
-		ID             string `json:"id"`
-		SecurityGroups []struct {
-			Name string `json:"name"`
-		} `json:"security_groups"`
-		OSSRVUSGTerminatedAt             interface{} `json:"OS-SRV-USG:terminated_at"`
-		OSEXTAZAvailabilityZone          string      `json:"OS-EXT-AZ:availability_zone"`
-		UserID                           string      `json:"user_id"`
-		Name                             string      `json:"name"`
-		Created                          time.Time   `json:"created"`
-		TenantID                         string      `json:"tenant_id"`
-		OSDCFDiskConfig                  string      `json:"OS-DCF:diskConfig"`
-		OsExtendedVolumesVolumesAttached []struct {
-			ID string `json:"id"`
-		} `json:"os-extended-volumes:volumes_attached"`
-		AccessIPv4         string `json:"accessIPv4"`
-		AccessIPv6         string `json:"accessIPv6"`
-		Progress           int    `json:"progress"`
-		OSEXTSTSPowerState int    `json:"OS-EXT-STS:power_state"`
-		ConfigDrive        string `json:"config_drive"`
-		Metadata           struct {
-			OsDistro        string `json:"os_distro"`
-			Description     string `json:"description"`
-			OsVersion       string `json:"os_version"`
-			ProjectDomain   string `json:"project_domain"`
-			HypervisorType  string `json:"hypervisor_type"`
-			MonitoringAgent string `json:"monitoring_agent"`
-			ImageName       string `json:"image_name"`
-			VolumeSize      string `json:"volume_size"`
-			OsArchitecture  string `json:"os_architecture"`
-			LoginUsername   string `json:"login_username"`
-			OsType          string `json:"os_type"`
-			TcEnv           string `json:"tc_env"`
-		} `json:"metadata"`
-	} `json:"servers"`
+	} `json:"image"`
+	OSEXTSTSTaskState  interface{} `json:"OS-EXT-STS:task_state"`
+	OSEXTSTSVMState    string      `json:"OS-EXT-STS:vm_state"`
+	OSSRVUSGLaunchedAt string      `json:"OS-SRV-USG:launched_at"`
+	Flavor             struct {
+		ID    string `json:"id"`
+		Links []struct {
+			Href string `json:"href"`
+			Rel  string `json:"rel"`
+		} `json:"links"`
+	} `json:"flavor"`
+	ID             string `json:"id"`
+	SecurityGroups []struct {
+		Name string `json:"name"`
+	} `json:"security_groups"`
+	OSSRVUSGTerminatedAt             interface{} `json:"OS-SRV-USG:terminated_at"`
+	OSEXTAZAvailabilityZone          string      `json:"OS-EXT-AZ:availability_zone"`
+	UserID                           string      `json:"user_id"`
+	Name                             string      `json:"name"`
+	Created                          time.Time   `json:"created"`
+	TenantID                         string      `json:"tenant_id"`
+	OSDCFDiskConfig                  string      `json:"OS-DCF:diskConfig"`
+	OsExtendedVolumesVolumesAttached []struct {
+		ID string `json:"id"`
+	} `json:"os-extended-volumes:volumes_attached"`
+	AccessIPv4         string `json:"accessIPv4"`
+	AccessIPv6         string `json:"accessIPv6"`
+	Progress           int    `json:"progress"`
+	OSEXTSTSPowerState int    `json:"OS-EXT-STS:power_state"`
+	ConfigDrive        string `json:"config_drive"`
+	Metadata           struct {
+		OsDistro        string `json:"os_distro"`
+		Description     string `json:"description"`
+		OsVersion       string `json:"os_version"`
+		ProjectDomain   string `json:"project_domain"`
+		HypervisorType  string `json:"hypervisor_type"`
+		MonitoringAgent string `json:"monitoring_agent"`
+		ImageName       string `json:"image_name"`
+		VolumeSize      string `json:"volume_size"`
+		OsArchitecture  string `json:"os_architecture"`
+		LoginUsername   string `json:"login_username"`
+		OsType          string `json:"os_type"`
+		TcEnv           string `json:"tc_env"`
+	} `json:"metadata"`
 }
 
 func GetInstanceListDetail(config *config.Config, token string) (*ServerListDetailResponse, error) {
@@ -328,4 +380,55 @@ func GetInstanceListDetail(config *config.Config, token string) (*ServerListDeta
 	*/
 
 	return serverList, nil
+}
+
+func createNetworks(subnetIdList []string) []Network {
+	var networks []Network
+
+	for _, subnetId := range subnetIdList {
+		network := Network{Subnet: subnetId}
+		networks = append(networks, network)
+	}
+
+	return networks
+}
+
+func StopInstanceList(serverInfoList *ServerListDetailResponse, config *config.Config, token string) error {
+	isSuccess := true
+	var wg sync.WaitGroup
+
+	shutdownRequest := new(ServerShutdownRequest)
+	reqJsonBytes, err := json.MarshalIndent(shutdownRequest, "", "  ")
+
+	httpReqHeader := map[string]string{}
+	httpReqHeader["Content-Type"] = "application/json"
+	httpReqHeader["X-Auth-Token"] = token
+
+	limitCh := make(chan struct{}, config.Thread.ThreadNum)
+	for _, serverInfo := range serverInfoList.Servers {
+		instanceUrl := constants.COMPUTE_ENDPOINT + "/v2/" + config.UserInfo.TenantId + "/servers/" + serverInfo.ID + "/action"
+		wg.Add(1)
+		limitCh <- struct{}{}
+		go func(serverName, instanceUrl string) {
+			defer wg.Done()
+			_, err = http.Post(instanceUrl, reqJsonBytes, httpReqHeader)
+			if err != nil {
+				log.Printf("ERROR : instance '%s' failed to shutdown. %s\n", serverName, err.Error())
+				isSuccess = false
+			} else {
+				log.Printf("instance '%s' successed to shutdown.\n", serverName)
+			}
+			time.Sleep(time.Second * config.Thread.SleepSecondsAfterDeleteInstance)
+			<-limitCh
+		}(serverInfo.Name, instanceUrl)
+	}
+
+	wg.Wait()
+
+	if isSuccess {
+		return nil
+	} else {
+		return fmt.Errorf("Failed to shutdown any of instance.")
+	}
+
 }

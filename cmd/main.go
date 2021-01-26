@@ -62,6 +62,13 @@ func main() {
 
 	} else if *flowType == constants.FLOW_TYPE_LIST_IMAGE {
 		flow.ListImage(token)
+
+	} else if *flowType == constants.FLOW_TYPE_START_INSTANCE {
+		flow.StartInstance(config, token)
+
+	} else if *flowType == constants.FLOW_TYPE_STOP_INSTANCE {
+		flow.StopInstance(config, token)
+
 	}
 
 	util.WaitEnter()

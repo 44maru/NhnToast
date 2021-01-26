@@ -45,20 +45,29 @@ type GetNetworkResponse struct {
 	} `json:"networks"`
 }
 
-func GetNetworkId(networkName, token string) (string, error) {
+func GetNetworkInfo(networkName, token string) (*GetNetworkResponse, error) {
 	httpReqHeader := map[string]string{}
 	httpReqHeader["X-Auth-Token"] = token
 	queryParam := map[string]string{}
 	queryParam["name"] = networkName
 	jsonRes, err := http.Get(constants.NETWORK_URL, httpReqHeader, queryParam)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	networkInfoList := new(GetNetworkResponse)
 	err = json.Unmarshal(jsonRes, &networkInfoList)
 	if err != nil {
-		log.Println("Get subnet list response json unmarshal err")
+		log.Println("Get network info response json unmarshal err")
+		return nil, err
+	}
+
+	return networkInfoList, nil
+}
+
+func GetNetworkId(networkName, token string) (string, error) {
+	networkInfoList, err := GetNetworkInfo(networkName, token)
+	if err != nil {
 		return "", err
 	}
 
@@ -69,26 +78,21 @@ func GetNetworkId(networkName, token string) (string, error) {
 	return networkInfoList.Networks[0].ID, nil
 }
 
-func GetSubnetId(subnetName, token string) (string, error) {
-	httpReqHeader := map[string]string{}
-	httpReqHeader["X-Auth-Token"] = token
-	queryParam := map[string]string{}
-	queryParam["name"] = subnetName
-	jsonRes, err := http.Get(constants.SUBNET_URL, httpReqHeader, queryParam)
+func GetSubnetIdList(networkName, token string) ([]string, error) {
+	networkInfoList, err := GetNetworkInfo(networkName, token)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	subnetInfoList := new(GetSubnetResponse)
-	err = json.Unmarshal(jsonRes, &subnetInfoList)
-	if err != nil {
-		log.Println("Get subnet list response json unmarshal err")
-		return "", err
+	if len(networkInfoList.Networks) < 1 {
+		return nil, fmt.Errorf("Not found network id for '%s'\n", networkName)
 	}
 
-	if len(subnetInfoList.Subnets) < 1 {
-		return "", fmt.Errorf("Not found subnet id for '%s'\n", subnetName)
+	var subnetIdList []string
+
+	for _, subnetInfo := range networkInfoList.Networks[0].Subnets {
+		subnetIdList = append(subnetIdList, subnetInfo)
 	}
 
-	return subnetInfoList.Subnets[0].ID, nil
+	return subnetIdList, nil
 }

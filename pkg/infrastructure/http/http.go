@@ -118,10 +118,12 @@ func analyzeHttpResponse(res *http.Response) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	err = json.Indent(&buf, bodyBytes, "", "  ")
-	if err != nil {
-		log.Println("Response JSON format error.")
-		return bodyBytes, err
+	if len(bodyBytes) > 0 {
+		err = json.Indent(&buf, bodyBytes, "", "  ")
+		if err != nil {
+			log.Println("Response JSON format error.")
+			return bodyBytes, err
+		}
 	}
 
 	return bodyBytes, nil

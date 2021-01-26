@@ -3,6 +3,8 @@ package constants
 const FLOW_TYPE_CREATE_INSTANCE = "create-instance"
 const FLOW_TYPE_DELETE_INSTANCE = "delete-instance"
 const FLOW_TYPE_LIST_INSTANCE = "list-instance"
+const FLOW_TYPE_START_INSTANCE = "start-instance"
+const FLOW_TYPE_STOP_INSTANCE = "stop-instance"
 const FLOW_TYPE_CREATE_FLOATINGIP = "create-floatingip"
 const FLOW_TYPE_DELETE_FLOATINGIP = "delete-floatingip"
 const FLOW_TYPE_LIST_FLOATINGIP = "list-floatingip"
