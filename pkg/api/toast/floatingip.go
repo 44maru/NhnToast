@@ -51,7 +51,7 @@ func CreateFloatingIps(serverList *ServerListDetailResponse, config *config.Conf
 		globalIpMacAddrMap := getGlobalIpMacAddrMap(serverInfo)
 
 		for _, vpcInfo := range serverInfo.Addresses.DefaultNetwork {
-			if vpcInfo.OSEXTIPSType == "floating" {
+			if vpcInfo.OSEXTIPSType == constants.OS_EXT_IP_TYPE_FLOATING {
 				continue
 			}
 
@@ -236,7 +236,7 @@ func GetFloatingIpList(config *config.Config, token string) (*FloatingIpListResp
 func getGlobalIpMacAddrMap(serverInfo Server) map[string]struct{} {
 	globalIpMacAddrMap := make(map[string]struct{})
 	for _, vpcInfo := range serverInfo.Addresses.DefaultNetwork {
-		if vpcInfo.OSEXTIPSType == "floating" {
+		if vpcInfo.OSEXTIPSType == constants.OS_EXT_IP_TYPE_FLOATING {
 			globalIpMacAddrMap[vpcInfo.OSEXTIPSMACMacAddr] = struct{}{}
 		}
 	}

@@ -69,6 +69,9 @@ func main() {
 	} else if *flowType == constants.FLOW_TYPE_STOP_INSTANCE {
 		flow.StopInstance(config, token)
 
+	} else if *flowType == constants.FLOW_TYPE_DUMP_GLOBAL_IP_LIST {
+		flow.DumpInstanceGlobalIpList(config, token)
+
 	}
 
 	util.WaitEnter()

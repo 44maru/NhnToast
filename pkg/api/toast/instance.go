@@ -430,5 +430,62 @@ func StopInstanceList(serverInfoList *ServerListDetailResponse, config *config.C
 	} else {
 		return fmt.Errorf("Failed to shutdown any of instance.")
 	}
+}
 
+func DumpGloabalIPList(serverInfoList *ServerListDetailResponse) error {
+	const GLOBAL_IP_LIST_EXCEL_FILE_PATH = "global-ip-list.xlsx"
+
+	taskExcel := xlsx.NewFile()
+	sheet, err := taskExcel.AddSheet("Sheet1")
+	if err != nil {
+		log.Printf("Faild to add sheet to '%s'. %s\n", GLOBAL_IP_LIST_EXCEL_FILE_PATH, err.Error())
+		return err
+	}
+
+	sheet.SetColWidth(1, 1, 20)
+	style := xlsx.NewStyle()
+	style.ApplyFill = true
+	style.Fill.PatternType = "lightDown"
+	style.Fill.BgColor = "FFC6EFCE" // Light green
+
+	needBgColor := false
+	row := 0
+
+	for _, serverInfo := range serverInfoList.Servers {
+		hasGlobalIp := false
+
+		sheet.Cell(row, 0).Value = serverInfo.Name
+		for _, networkInfo := range serverInfo.Addresses.DefaultNetwork {
+			if networkInfo.OSEXTIPSType == constants.OS_EXT_IP_TYPE_FLOATING {
+				sheet.Cell(row, 1).Value = networkInfo.Addr
+				if needBgColor {
+					sheet.Cell(row, 0).SetStyle(style)
+					sheet.Cell(row, 1).SetStyle(style)
+				}
+
+				hasGlobalIp = true
+				row++
+			}
+		}
+
+		// host単位で背景色のON/OFFを交互に切替
+		if needBgColor {
+			needBgColor = false
+		} else {
+			needBgColor = true
+		}
+
+		// 1つもGlobalIPが存在しない場合は、改行されていないので行を進める
+		if !hasGlobalIp {
+			row++
+		}
+	}
+
+	err = taskExcel.Save(GLOBAL_IP_LIST_EXCEL_FILE_PATH)
+	if err != nil {
+		log.Printf("Faild to save '%s'. %s\n", GLOBAL_IP_LIST_EXCEL_FILE_PATH, err.Error())
+		return err
+	}
+
+	return nil
 }

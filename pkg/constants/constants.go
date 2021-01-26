@@ -9,6 +9,7 @@ const FLOW_TYPE_CREATE_FLOATINGIP = "create-floatingip"
 const FLOW_TYPE_DELETE_FLOATINGIP = "delete-floatingip"
 const FLOW_TYPE_LIST_FLOATINGIP = "list-floatingip"
 const FLOW_TYPE_LIST_IMAGE = "list-image"
+const FLOW_TYPE_DUMP_GLOBAL_IP_LIST = "dump-global-ip-list"
 
 const COMPUTE_ENDPOINT = "https://jp1-api-instance.infrastructure.cloud.toast.com"
 const NETWORK_ENDPOINT = "https://jp1-api-network.infrastructure.cloud.toast.com"
@@ -23,3 +24,5 @@ const IMAGE_URL = IMAGE_ENDPOINT + "/v2/images"
 const PUBLIC_NETWORK_ID = "117fa565-c8eb-4e58-a420-c5146e516341"
 const DEFAULT_SUBNET_NAME = "Default Network"
 const PUBLIC_NETWORK_NAME = "Public network for Toast JP"
+
+const OS_EXT_IP_TYPE_FLOATING = "floating"
