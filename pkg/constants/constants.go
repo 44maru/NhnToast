@@ -23,6 +23,6 @@ const IMAGE_URL = IMAGE_ENDPOINT + "/v2/images"
 
 const PUBLIC_NETWORK_ID = "117fa565-c8eb-4e58-a420-c5146e516341"
 const DEFAULT_SUBNET_NAME = "Default Network"
-const PUBLIC_NETWORK_NAME = "Public network for Toast JP"
+const PUBLIC_NETWORK_NAME = "Public Network"
 
 const OS_EXT_IP_TYPE_FLOATING = "floating"
