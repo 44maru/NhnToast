@@ -455,6 +455,10 @@ func DumpGloabalIPList(serverInfoList *ServerListDetailResponse) error {
 		hasGlobalIp := false
 
 		sheet.Cell(row, 0).Value = serverInfo.Name
+		if needBgColor {
+			sheet.Cell(row, 0).SetStyle(style)
+		}
+
 		for _, networkInfo := range serverInfo.Addresses.DefaultNetwork {
 			if networkInfo.OSEXTIPSType == constants.OS_EXT_IP_TYPE_FLOATING {
 				sheet.Cell(row, 1).Value = networkInfo.Addr
